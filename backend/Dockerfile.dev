@@ -1,0 +1,41 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Constrained against requirements.lock (see Dockerfile, the prod image) so a
+# fresh --build resolves the same versions as the tested image instead of
+# floating to whatever's newest on PyPI -- that drift is what broke this
+# build (a newer SQLAlchemy stopped auto-installing greenlet).
+COPY requirements.txt requirements-dev.txt requirements-scale.txt requirements-connectors.txt requirements-docparse.txt requirements.lock ./
+RUN pip install --no-cache-dir -r requirements-dev.txt -c requirements.lock
+
+# Enterprise layer: hybrid index, workers, connectors. Optional extras are build args (see docker-compose files):
+#   INSTALL_CONNECTORS=1  (default on) packages for the S3 / SMB / SFTP / SQL connectors (default on)
+#   INSTALL_DOCPARSE=1    (default on) local OCR + layout + table models for scanned documents (adds ~400 MB; two-step install,
+#                         see requirements-docparse.txt)
+#   INSTALL_LEGACY_OFFICE=1  (default on) LibreOffice, to read .doc .xls .ppt .ods .odp (adds ~450 MB)
+ARG INSTALL_CONNECTORS=1
+ARG INSTALL_DOCPARSE=1
+ARG INSTALL_LEGACY_OFFICE=1
+RUN if [ "$INSTALL_LEGACY_OFFICE" = "1" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui fonts-dejavu-core \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+RUN pip install --no-cache-dir -r requirements-scale.txt -c requirements.lock \
+    && if [ "$INSTALL_CONNECTORS" = "1" ]; then pip install --no-cache-dir -r requirements-connectors.txt -c requirements.lock; fi \
+    && if [ "$INSTALL_DOCPARSE" = "1" ]; then \
+         pip install --no-cache-dir -r requirements-docparse.txt -c requirements.lock \
+         && pip install --no-cache-dir --no-deps rapidocr-onnxruntime==1.4.4 rapid-layout==1.2.1 rapid-table==1.0.3; \
+       fi
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", \
+     "--reload-exclude", ".venv/*", "--reload-exclude", "__pycache__/*", "--reload-exclude", "*.pyc"]

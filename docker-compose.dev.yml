@@ -1,0 +1,183 @@
+# Dev stack, but fronted by nginx + TLS -- for running docker-compose.local.yml's exact
+# setup (self-hosted Postgres/Qdrant/MinIO on Docker volumes, not managed RDS/S3) on a
+# public EC2 (or similar) instance instead of only localhost. docker-compose.local.yml
+# itself stays plain HTTP, no nginx, no certificate -- that's the right default for pure
+# local testing on your own machine, where traffic never leaves the loopback interface
+# and a self-signed cert just adds a per-origin "trust this" click for no real benefit.
+# This file is a complete, standalone stack (not an override of docker-compose.local.yml)
+# so it can be read end to end without cross-referencing two files -- same reasoning
+# docker-compose.prod.yml is its own file rather than an overlay.
+#
+# Run with:
+#   docker compose --env-file .env.dev -f docker-compose.dev.yml up -d --build
+#
+# Needs TLS_CERT_DIR (+ a matching NEXT_PUBLIC_API_BASE_URL / CORS_ORIGINS /
+# S3_PUBLIC_ENDPOINT_URL) set in .env.dev -- see its EC2 TLS section for how to get a
+# real Let's Encrypt cert (or a local self-signed one to test this file before EC2).
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/proxy_params:/etc/nginx/proxy_params:ro
+      # Per-file, not a directory mount: certbot's live/<domain>/*.pem are
+      # symlinks into ../../archive/<domain>/ -- mounting the live/ directory
+      # whole would carry the symlinks in unresolved (dangling inside the
+      # container, since only that one directory is mounted). Bind-mounting
+      # each file individually resolves the symlink on the host at mount
+      # time instead, so the container just sees the real file -- no need to
+      # also mount /etc/letsencrypt/archive. Confirmed working for a local
+      # self-signed cert too (plain files, not symlinks -- resolves as a no-op).
+      - ${TLS_CERT_DIR:?set TLS_CERT_DIR in .env.dev to a folder with fullchain.pem and privkey.pem}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - ${TLS_CERT_DIR}/privkey.pem:/etc/nginx/certs/privkey.pem:ro
+    depends_on:
+      - backend
+      - frontend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      # The tree engine's own storage (app/rag_service.py) -- the actual
+      # source of truth for every indexed document's tree. Losing this
+      # volume orphans every rag_doc_id in Postgres.
+      - rag-data:/app/.rag-data
+      - ./models:/models:ro
+    env_file: .env.dev
+    environment:
+      TRUSTED_PROXY_HOPS: "1"
+    expose:
+      - "8000"
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file: .env.dev
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: rag_engine
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.dev (must match POSTGRES_DSN's password)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env.dev}
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  minio:
+    # MinIO pulled every minio/minio tag from Docker Hub (Sept 2026) and archived
+    # the open-source repo -- the free community edition is being sunset in favor
+    # of paid AIStor. quay.io/minio/minio (MinIO's own alternate registry per
+    # their own announcement) returns 401 Unauthorized as of this writing --
+    # verified directly, not assumed -- so it is NOT a working fallback right
+    # now despite being widely reported as one. elestio/minio is a third-party
+    # rebuild (not MinIO Inc.), confirmed pullable -- accepted here only because
+    # the official registry path is currently broken; re-evaluate this image
+    # choice once MinIO's distribution situation stabilizes.
+    image: elestio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-rag}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.dev (must match S3_SECRET_KEY)}
+    ports:
+      # API only -- the browser fetches presigned preview URLs from this
+      # directly (see .env.dev's S3_PUBLIC_ENDPOINT_URL), so it can't move
+      # behind nginx without careful presigned-signature-safe path proxying.
+      # Console (9001) is admin-only -- no reason to publish it.
+      - "9000:9000"
+    volumes:
+      - minio-data:/data
+      # Reuses the same cert nginx uses (see TLS_CERT_DIR) so MinIO serves
+      # HTTPS too -- presigned preview URLs otherwise travel in plaintext
+      # since this port isn't behind nginx. MinIO's fixed filenames, source
+      # renamed via the bind mount target. Presence of certs here switches
+      # MinIO to HTTPS-only -- see core/object_store.py for why the
+      # backend's own internal client skips hostname verification.
+      - ${TLS_CERT_DIR}/fullchain.pem:/root/.minio/certs/public.crt:ro
+      - ${TLS_CERT_DIR}/privkey.pem:/root/.minio/certs/private.key:ro
+
+  # ---- enterprise ingest worker: same image as the API, different command ----
+  # Scans sources, parses, embeds and indexes documents. Jobs are claimed with SKIP LOCKED, so any number of
+  # workers can run side by side:  docker compose ... up -d --scale worker=4
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+      args:
+        INSTALL_DOCPARSE: ${INSTALL_DOCPARSE:-1}
+        INSTALL_LEGACY_OFFICE: ${INSTALL_LEGACY_OFFICE:-1}
+        INSTALL_CONNECTORS: ${INSTALL_CONNECTORS:-1}
+    command: ["python", "-m", "app.scale.worker"]
+    healthcheck:
+      # The worker has no port. It touches a file every 20 s while its loop runs; no touch for 2 min = stuck or dead.
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/tmp/scale-worker.alive') < 120 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+    stop_grace_period: 60s
+    env_file: .env.dev
+    volumes:
+      - ./backend:/app
+      - rag-data:/app/.rag-data
+      - ./models:/models:ro
+      - ${SCALE_SOURCE_DIR:-./sources}:/mnt/sources:ro
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+    restart: unless-stopped
+
+  # ---- optional model servers (profile "models"): scripts/<stack>/start.sh --models ----
+  # Hugging Face text-embeddings-inference. CPU image by default; on a GPU host set TEI_IMAGE to a GPU tag and add
+  # the nvidia device reservation. Models download on first start into the hf-cache volume.
+  embed:
+    profiles: ["models"]
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.8}
+    command: ["--model-id", "${EMBED_MODEL_ID:-BAAI/bge-m3}", "--max-client-batch-size", "128"]
+    volumes:
+      - hf-cache:/data
+    restart: unless-stopped
+
+  rerank:
+    profiles: ["models"]
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.8}
+    command: ["--model-id", "${RERANK_MODEL_ID:-BAAI/bge-reranker-v2-m3}"]
+    volumes:
+      - hf-cache:/data
+    restart: unless-stopped
+
+
+volumes:
+  pgdata:
+  qdrant-data:
+  minio-data:
+  rag-data:
+  hf-cache:

@@ -1,0 +1,23 @@
+{
+  "docs": 3000,
+  "bytes": 7632198,
+  "workers": 2,
+  "scan_seconds": 3.11,
+  "ingest_seconds": 131.84,
+  "docs_per_second": 22.76,
+  "worker_exit": 0,
+  "indexed": 3000,
+  "failed": 0,
+  "dead_jobs": 0,
+  "chunks": 3000,
+  "exact_id_hit_at_1": 0.61,
+  "exact_id_hit_at_5": 1.0,
+  "permission_leaks": 0,
+  "candidate_latency": {
+    "p50_ms": 15.06,
+    "p95_ms": 17.99,
+    "p99_ms": 19.53,
+    "mean_ms": 15.37,
+    "n": 200
+  }
+}

@@ -1,0 +1,6 @@
+# Optional packages for the connectors that need one (docs/scale/CONNECTORS.md). Everything else uses the standard library and the
+# `requests`/`httpx`-style helpers already in the app. Install only what you use.
+smbprotocol>=1.13        # kind "smb"   (Windows file shares / NAS)
+boto3>=1.34              # kind "s3"    (AWS S3, Cloudflare R2, MinIO, Wasabi, Backblaze B2, DigitalOcean Spaces, Oracle OCI, Ceph)
+paramiko>=3.2            # kind "sftp"
+# kind "sql": SQLAlchemy is already required; add the database driver, e.g.  psycopg2-binary  (PostgreSQL). SQLite needs none.

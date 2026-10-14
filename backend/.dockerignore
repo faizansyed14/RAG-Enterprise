@@ -1,0 +1,18 @@
+# Local Python env / caches — image installs from requirements.txt
+.venv
+venv
+__pycache__
+**/__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.rag-data
+*.log
+.env*
+!.env*.example
+.DS_Store
+.coverage
+htmlcov
+tests

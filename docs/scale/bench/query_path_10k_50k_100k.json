@@ -1,0 +1,191 @@
+{
+  "checkpoints": [
+    {
+      "documents": 10000,
+      "chunks": 10000,
+      "search_chunks": {
+        "p50_ms": 11.81,
+        "p95_ms": 14.95,
+        "p99_ms": 15.76,
+        "mean_ms": 12.14,
+        "n": 200
+      },
+      "candidate_documents": {
+        "p50_ms": 17.42,
+        "p95_ms": 21.64,
+        "p99_ms": 28.75,
+        "mean_ms": 17.99,
+        "n": 200
+      },
+      "exact_id_hit_at_1": 1.0,
+      "list_documents_by_name": {
+        "p50_ms": 0.7,
+        "p95_ms": 1.12,
+        "p99_ms": 1.64,
+        "mean_ms": 0.74,
+        "n": 100
+      },
+      "resolve_document": {
+        "p50_ms": 0.6,
+        "p95_ms": 0.8,
+        "p99_ms": 0.92,
+        "mean_ms": 0.62,
+        "n": 100
+      },
+      "unique_doc_name": {
+        "p50_ms": 1.75,
+        "p95_ms": 2.35,
+        "p99_ms": 3.12,
+        "mean_ms": 1.87,
+        "n": 100
+      },
+      "visible_document_ids_40": {
+        "p50_ms": 0.95,
+        "p95_ms": 1.26,
+        "p99_ms": 1.47,
+        "mean_ms": 0.98,
+        "n": 100
+      },
+      "document_list_page_50": {
+        "p50_ms": 1.42,
+        "p95_ms": 2.07,
+        "p99_ms": 2.99,
+        "mean_ms": 1.53,
+        "n": 100
+      },
+      "concurrent": {
+        "threads": 8,
+        "qps": 90.9,
+        "p95_ms": 119.3
+      }
+    },
+    {
+      "documents": 50000,
+      "chunks": 54000,
+      "search_chunks": {
+        "p50_ms": 18.39,
+        "p95_ms": 26.08,
+        "p99_ms": 36.44,
+        "mean_ms": 19.56,
+        "n": 200
+      },
+      "candidate_documents": {
+        "p50_ms": 24.72,
+        "p95_ms": 33.36,
+        "p99_ms": 43.49,
+        "mean_ms": 26.44,
+        "n": 200
+      },
+      "exact_id_hit_at_1": 1.0,
+      "list_documents_by_name": {
+        "p50_ms": 0.89,
+        "p95_ms": 1.6,
+        "p99_ms": 3.4,
+        "mean_ms": 0.97,
+        "n": 100
+      },
+      "resolve_document": {
+        "p50_ms": 0.75,
+        "p95_ms": 1.03,
+        "p99_ms": 1.13,
+        "mean_ms": 0.77,
+        "n": 100
+      },
+      "unique_doc_name": {
+        "p50_ms": 2.23,
+        "p95_ms": 2.6,
+        "p99_ms": 5.97,
+        "mean_ms": 2.3,
+        "n": 100
+      },
+      "visible_document_ids_40": {
+        "p50_ms": 1.18,
+        "p95_ms": 1.85,
+        "p99_ms": 2.52,
+        "mean_ms": 1.43,
+        "n": 100
+      },
+      "document_list_page_50": {
+        "p50_ms": 2.07,
+        "p95_ms": 2.68,
+        "p99_ms": 3.79,
+        "mean_ms": 2.13,
+        "n": 100
+      },
+      "concurrent": {
+        "threads": 8,
+        "qps": 79.2,
+        "p95_ms": 138.8
+      }
+    },
+    {
+      "documents": 100000,
+      "chunks": 98256,
+      "search_chunks": {
+        "p50_ms": 22.8,
+        "p95_ms": 32.21,
+        "p99_ms": 51.31,
+        "mean_ms": 24.47,
+        "n": 200
+      },
+      "candidate_documents": {
+        "p50_ms": 28.55,
+        "p95_ms": 43.79,
+        "p99_ms": 52.12,
+        "mean_ms": 30.9,
+        "n": 200
+      },
+      "exact_id_hit_at_1": 1.0,
+      "list_documents_by_name": {
+        "p50_ms": 0.55,
+        "p95_ms": 0.76,
+        "p99_ms": 1.84,
+        "mean_ms": 0.61,
+        "n": 100
+      },
+      "resolve_document": {
+        "p50_ms": 0.51,
+        "p95_ms": 0.77,
+        "p99_ms": 2.76,
+        "mean_ms": 0.57,
+        "n": 100
+      },
+      "unique_doc_name": {
+        "p50_ms": 1.51,
+        "p95_ms": 1.98,
+        "p99_ms": 2.94,
+        "mean_ms": 1.69,
+        "n": 100
+      },
+      "visible_document_ids_40": {
+        "p50_ms": 0.82,
+        "p95_ms": 0.98,
+        "p99_ms": 1.39,
+        "mean_ms": 0.9,
+        "n": 100
+      },
+      "document_list_page_50": {
+        "p50_ms": 1.62,
+        "p95_ms": 2.17,
+        "p99_ms": 2.77,
+        "mean_ms": 1.73,
+        "n": 100
+      },
+      "concurrent": {
+        "threads": 8,
+        "qps": 52.4,
+        "p95_ms": 205.8
+      }
+    }
+  ],
+  "queue": {
+    "depth": 100000,
+    "claim": {
+      "p50_ms": 4.0,
+      "p95_ms": 8.06,
+      "p99_ms": 8.81,
+      "mean_ms": 4.56,
+      "n": 200
+    }
+  }
+}

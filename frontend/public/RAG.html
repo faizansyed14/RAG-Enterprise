@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enterprise RAG — Business to Technical Walkthrough</title>
+<style>
+:root{--bg:#000;--panel:#080808;--line:#303030;--line2:#5a5a5a;--text:#fff;--muted:#b8b8b8;--dim:#7d7d7d;--max:1280px}
+*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5}
+.wrap{max-width:var(--max);margin:0 auto;padding:42px 28px 88px}
+header{padding:8px 0 36px;border-bottom:1px solid var(--line);margin-bottom:50px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);margin-bottom:12px}
+h1{font-size:clamp(36px,5vw,62px);line-height:1.03;letter-spacing:-.04em;margin:0;max-width:960px}.lede{margin:18px 0 0;color:var(--muted);font-size:18px;max-width:900px}
+section{margin:0 0 66px}.section-head{display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:start;margin-bottom:20px}.num{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:1px solid #fff;font-weight:700;font-size:13px}
+h2{margin:1px 0 5px;font-size:28px;letter-spacing:-.02em}.sub{margin:0;color:var(--muted);max-width:900px}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);margin-bottom:8px}.big{font-size:18px;font-weight:700;margin-bottom:7px}.small{font-size:13px;color:var(--muted)}.tech{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:#ddd}
+.flow{display:flex;align-items:stretch;gap:9px;overflow-x:auto;padding:2px 0 8px}.step{min-width:150px;flex:1;border:1px solid var(--line2);border-radius:11px;padding:15px;background:#050505}.step .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}.step strong{display:block;font-size:14.5px;margin-bottom:5px}.step p{margin:0;color:var(--muted);font-size:12px}.arrow{min-width:22px;display:grid;place-items:center;font-size:20px}
+.callout{border-left:3px solid #fff;padding:14px 17px;background:#070707;color:var(--muted);font-size:13.5px;margin-top:14px}.callout b{color:#fff}.note{margin-top:14px;border:1px dashed var(--line2);background:#050505;border-radius:11px;padding:14px 16px;color:var(--muted);font-size:13px}.note b{color:#fff}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:12px 9px;text-align:left;vertical-align:top}th{color:#fff;font-weight:650}td{color:var(--muted)}td:first-child{color:#fff;width:205px}
+.badges{display:flex;flex-wrap:wrap;gap:7px}.badge{border:1px solid var(--line2);border-radius:999px;padding:6px 9px;font-size:11.5px;color:#ececec;background:#050505}
+.tree{display:grid;gap:16px}.tree-row{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}.node{border:1px solid var(--line2);background:#050505;border-radius:11px;padding:13px 15px;width:250px;text-align:center}.node strong{display:block;font-size:14px;margin-bottom:4px}.node span{display:block;color:var(--muted);font-size:11.5px}.node .raw{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);text-align:left;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:#d9d9d9}.tree-arrow{text-align:center;color:#8c8c8c;font-size:22px}
+.example-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.example{border:1px solid var(--line);background:#050505;border-radius:11px;padding:15px}.example .title{font-size:12.5px;font-weight:700;margin-bottom:8px}.example pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;color:#d7d7d7}
+.ul{margin:0;padding-left:18px;color:var(--muted)}.ul li{margin:7px 0}.ul b{color:#fff}.footer{border-top:1px solid var(--line);padding-top:22px;color:var(--dim);font-size:11.5px}
+@media(max-width:950px){.grid2,.grid3,.grid4,.example-grid{grid-template-columns:1fr}.wrap{padding:28px 18px 60px}}
+</style></head>
+<body><div class="wrap">
+<header>
+<div class="eyebrow">Enterprise RAG · Business to Technical Walkthrough</div>
+<h1>From business problem to trusted document answers</h1>
+
+</header>
+
+<section>
+<div class="section-head"><div class="num">1</div><div><h2>Business problem</h2><p class="sub">Teams have many files and formats, but finding reliable information quickly is difficult.</p></div></div>
+<div class="grid3">
+<div class="card"><div class="label">Problem 01</div><div class="big">Information is scattered</div><div class="small">Important answers may be buried in PDFs, spreadsheets, emails, schedules and scanned documents.</div></div>
+<div class="card"><div class="label">Problem 02</div><div class="big">Manual search is slow</div><div class="small">Users spend time opening files, scanning pages and checking whether an answer is actually supported.</div></div>
+<div class="card"><div class="label">Problem 03</div><div class="big">AI answers must be trusted</div><div class="small">The assistant must answer from approved documents and show exactly where the answer came from.</div></div>
+</div>
+<div class="callout"><b>Business need:</b> ask a natural-language question across company documents and get a fast, traceable answer linked to the source page.</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">2</div><div><h2>What we developed</h2><p class="sub">An Enterprise RAG application that turns uploaded documents into searchable knowledge and returns cited answers.</p></div></div>
+<div class="flow">
+<div class="step"><div class="k">Input</div><strong>Upload documents</strong><p>PDF, DOCX, CSV, XLSX, EML, TXT, JSON and XER.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Understand</div><strong>Build document structure</strong><p>Detect sections, subsections, page ranges and summaries.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Ask</div><strong>Natural-language Q&A</strong><p>The AI agent finds the relevant document and reads the real page content.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Trust</div><strong>Answer with citations</strong><p>The final answer links back to the exact document page.</p></div>
+</div>
+<div class="callout"><b>Short customer explanation:</b> “We built an AI document assistant that finds the relevant section and page in your internal documents, reads the source, and gives you a cited answer.”</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">3</div><div><h2>Technologies we are using</h2><p class="sub">Each technology has a clear responsibility in the platform.</p></div></div>
+<div class="card table-wrap">
+<table><thead><tr><th>Technology</th><th>Role</th></tr></thead><tbody>
+<tr><td>Next.js / React</td><td>Frontend for upload, chat, live status, citations and preview.</td></tr>
+<tr><td>FastAPI / Python</td><td>Backend APIs, validation, auth, guardrails, credits, ingestion and orchestration.</td></tr>
+<tr><td>PostgreSQL</td><td>Users, usage, credits, document metadata, folders, rate limits and operational records.</td></tr>
+<tr><td>S3 / MinIO</td><td>Original files, normalized PDFs and page / diagram images.</td></tr>
+<tr><td>RAG Engine storage</td><td>Per-document <span class="tech">doc.json</span>, <span class="tech">tree.json</span> and <span class="tech">pages.json</span>.</td></tr>
+<tr><td>OpenAI Agents SDK</td><td>Runs the chat agent and manages the model → tool → evidence → answer loop.</td></tr>
+<tr><td>OpenRouter</td><td>Gateway to index, chat, vision and embedding models.</td></tr>
+<tr><td>Qdrant</td><td>Vector search for scanned / visual pages only.</td></tr>
+</tbody></table>
+</div>
+<div class="grid4" style="margin-top:14px">
+<div class="card"><div class="label">Index model</div><div class="big">GPT-4o-mini</div><div class="small">Tree expansion, node summaries and document description.</div></div>
+<div class="card"><div class="label">Chat model</div><div class="big">GPT-5-mini</div><div class="small">Agent reasoning and final answer.</div></div>
+<div class="card"><div class="label">Vision model</div><div class="big">Qwen3-VL</div><div class="small">OCR, visual understanding and verification.</div></div>
+<div class="card"><div class="label">Embedding model</div><div class="big">text-embedding-3-small</div><div class="small">Visual-page and visual-query vectors for Qdrant.</div></div>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">4</div><div><h2>How the application works</h2><p class="sub">There are only two major phases to explain.</p></div></div>
+<div class="grid2">
+<div class="card"><div class="label">Phase A</div><div class="big">Prepare the documents</div><div class="small">Upload → validate → store original → normalize → extract → build one document tree → summarize → save page text → indexed.</div></div>
+<div class="card"><div class="label">Phase B</div><div class="big">Answer questions</div><div class="small">User asks → agent finds the document → reads its structure → opens the relevant pages → answers from evidence → returns citations.</div></div>
+</div>
+<div class="note"><b>Key design point:</b> every uploaded document creates its own independent tree. There is no single cross-document knowledge graph.</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">5</div><div><h2>Document ingestion flow</h2><p class="sub">This is what happens from upload until the document becomes searchable.</p></div></div>
+<div class="flow">
+<div class="step"><div class="k">01</div><strong>Upload</strong><p>User uploads a supported file.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">02</div><strong>Validate & deduplicate</strong><p>Check type, size, filename and SHA-256 hash.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">03</div><strong>Store original</strong><p>Preserve the untouched source in S3 / MinIO.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">04</div><strong>Normalize</strong><p>Convert supported formats into a consistent PDF/page representation.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">05</div><strong>Build tree</strong><p>Detect headings, sections, subsections and page ranges.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">06</div><strong>Summarize & save</strong><p>Create summaries and persist tree + full page text.</p></div>
+</div>
+<div class="grid2" style="margin-top:14px">
+<div class="card"><div class="label">Normal files</div><div class="small">Digital PDF goes directly to the tree pipeline. DOCX, CSV, XLSX, EML, TXT, JSON and XER are parsed and normalized first.</div></div>
+<div class="card"><div class="label">Scanned PDF</div><div class="small">Vision OCR reads each page. OCR text continues into the tree pipeline; visual-page embeddings are stored in Qdrant.</div></div>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">6</div><div><h2>What the document tree looks like</h2><p class="sub">Each level tells the agent something different. The example below shows exactly what kind of information is inside a document root, parent node, child node, leaf node and the final page evidence.</p></div></div>
+
+<div class="card tree">
+<div class="tree-row"><div class="node" style="width:320px"><strong>DOCUMENT ROOT</strong><span>Research Report.pdf · 42 pages</span><div class="raw">Document-level information:<br><br>Name:<br>Research Report.pdf<br><br>Description:<br>“Research report describing how a customer survey was conducted and what the study found.”<br><br>What this level means:<br>This represents the whole uploaded document. It helps the agent understand what the file is generally about.</div></div></div>
+<div class="tree-arrow">↓</div>
+<div class="tree-row"><div class="node" style="width:320px"><strong>PARENT NODE</strong><span>Methodology · pages 4–8</span><div class="raw">Title:<br>Methodology<br><br>Summary:<br>“Explains how the research was designed, how participants were selected, how data was collected, and how responses were analyzed.”<br><br>Page range:<br>4–8<br><br>Contains child sections:<br>• Data Collection<br>• Analysis Method<br><br>What this level means:<br>A parent node is a large section that contains smaller sections.</div></div></div>
+<div class="tree-arrow">↓</div>
+<div class="tree-row"><div class="node" style="width:300px"><strong>CHILD NODE</strong><span>Data Collection · pages 4–5</span><div class="raw">Title:<br>Data Collection<br><br>Summary:<br>“Describes the sources, survey process, participant selection and the period during which responses were collected.”<br><br>Page range:<br>4–5<br><br>Belongs under:<br>Methodology<br><br>What this level means:<br>A child node is a subsection inside a larger parent section.</div></div><div class="node" style="width:300px"><strong>CHILD NODE</strong><span>Analysis Method · pages 6–8</span><div class="raw">Title:<br>Analysis Method<br><br>Summary:<br>“Explains how survey responses were grouped, compared and analyzed to produce the study findings.”<br><br>Page range:<br>6–8<br><br>Belongs under:<br>Methodology<br><br>What this level means:<br>This is another subsection under the same parent.</div></div></div>
+<div class="tree-arrow">↓</div>
+<div class="tree-row"><div class="node" style="width:330px"><strong>LEAF NODE</strong><span>Survey Participants · page 5</span><div class="raw">Title:<br>Survey Participants<br><br>Summary:<br>“Describes the number of survey participants and how they were divided into groups.”<br><br>Page range:<br>5–5<br><br>Child nodes:<br>None<br><br>What this level means:<br>A leaf is the lowest structural section. It does NOT mean the full text is stored only in this summary. The real text is still stored in pages.json.</div></div></div>
+<div class="tree-arrow">↓</div>
+<div class="tree-row"><div class="node" style="width:440px"><strong>ACTUAL PAGE EVIDENCE</strong><span>pages.json · page 5</span><div class="raw">Full extracted page text example:<br><br>“The survey was conducted between March and June. A total of 482 participants responded. Participants were divided into three groups based on department and experience level. Responses were collected through an online questionnaire and verified before analysis.”<br><br>What this level means:<br>This is the real source content the agent reads before answering.</div></div></div>
+</div>
+
+<div class="grid3" style="margin-top:14px">
+<div class="card"><div class="label">Parent node = broad section</div><div class="big">Methodology</div><div class="small">Tells the agent: “The information about how the study was performed is somewhere in pages 4–8.”</div></div>
+<div class="card"><div class="label">Child / leaf = narrower topic</div><div class="big">Data Collection → Survey Participants</div><div class="small">Helps the agent narrow from a broad section to the most relevant subsection and page.</div></div>
+<div class="card"><div class="label">pages.json = source evidence</div><div class="big">482 participants</div><div class="small">The exact detailed facts are read from the page text, not assumed from the summary.</div></div>
+</div>
+
+<div class="example-grid">
+<div class="example"><div class="title">tree.json — parent example</div><pre>{
+  "title": "Methodology",
+  "node_id": "node-002",
+  "start_index": 4,
+  "end_index": 8,
+  "summary": "Explains how the research was designed, how participants were selected, how data was collected, and how responses were analyzed."
+}</pre></div>
+<div class="example"><div class="title">tree.json — child example</div><pre>{
+  "title": "Data Collection",
+  "node_id": "node-002-001",
+  "start_index": 4,
+  "end_index": 5,
+  "summary": "Describes the survey process, participant selection and collection period."
+}</pre></div>
+<div class="example"><div class="title">pages.json — actual evidence</div><pre>{
+  "page_number": 5,
+  "markdown": "The survey was conducted between March and June. A total of 482 participants responded..."
+}</pre></div>
+</div>
+
+<div class="callout"><b>The easiest way to explain this:</b> Parent nodes tell the AI the broad area, child nodes narrow the topic, leaf nodes identify the lowest useful section, and <span class="tech">pages.json</span> contains the complete source text used for the final answer.</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">7</div><div><h2>How the tree is created</h2><p class="sub">The LLM does not invent the entire hierarchy.</p></div></div>
+<div class="flow">
+<div class="step"><div class="k">01</div><strong>Layout extraction</strong><p>Text positions, fonts, headings, bookmarks and page boundaries.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">02</div><strong>Initial tree</strong><p>Mostly deterministic parent / child / leaf boundaries.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">03</div><strong>Optimize</strong><p>Merge unhelpful nodes and simplify structure.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">04</div><strong>Optional LLM expansion</strong><p>Long sections may be inspected for real subsections.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">05</div><strong>Summaries</strong><p>Leaves first, then parents, bottom-up.</p></div>
+</div>
+<div class="note"><b>Why this matters:</b> summaries help navigation, but the original page content remains the factual evidence source.</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">8</div><div><h2>Question → answer flow</h2><p class="sub">This is the core user experience.</p></div></div>
+<div class="flow">
+<div class="step"><div class="k">01</div><strong>User asks</strong><p>Question + selected document scope.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">02</div><strong>Backend checks</strong><p>Guardrail, credits and allowed indexed documents.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">03</div><strong>Agent starts</strong><p>GPT-5-mini receives instructions and 4 tools.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">04</div><strong>Find document</strong><p>Read document names and descriptions.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">05</div><strong>Find section</strong><p>Read tree structure and page ranges.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">06</div><strong>Read evidence</strong><p>Open actual pages from pages.json.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">07</div><strong>Answer</strong><p>Return grounded answer with citations.</p></div>
+</div>
+<div class="card" style="margin-top:14px"><div class="label">The 4 read-only tools</div><div class="badges"><span class="badge">browse_documents()</span><span class="badge">get_document()</span><span class="badge">get_document_structure()</span><span class="badge">get_page_content()</span></div></div>
+<div class="example-grid">
+<div class="example"><div class="title">Question</div><pre>Explain the methodology.</pre></div>
+<div class="example"><div class="title">Tree result</div><pre>Methodology
+pages 4–8</pre></div>
+<div class="example"><div class="title">Evidence</div><pre>get_page_content("4-8")
+→ full page text
+→ cited answer</pre></div>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">9</div><div><h2>Visual questions use a separate path</h2><p class="sub">This is the only vector-search path in the system.</p></div></div>
+<div class="flow">
+<div class="step"><div class="k">Query</div><strong>“Show me the fire route diagram”</strong><p>Backend detects a visual-style request.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Embed</div><strong>Embedding model</strong><p>Create one query vector.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Search</div><strong>Qdrant</strong><p>Find the closest visual-page candidates.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Verify</div><strong>Vision model</strong><p>Check candidates against real page images.</p></div><div class="arrow">→</div>
+<div class="step"><div class="k">Return</div><strong>Verified visual citation</strong><p>Only confirmed pages are shown.</p></div>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div class="num">10</div><div><h2>Important boundaries</h2><p class="sub">Keep these points clear when explaining the architecture.</p></div></div>
+<div class="grid2">
+<div class="card"><ul class="ul"><li><b>No vector search over normal document text.</b></li><li><b>No cross-document knowledge graph.</b></li><li><b>No fixed number of sections or nodes.</b></li><li><b>No open-ended indexing loop.</b></li></ul></div>
+<div class="card"><ul class="ul"><li>Summaries are navigation aids, not source-of-truth facts.</li><li>Full page content remains in <span class="tech">pages.json</span>.</li><li>Qdrant is for scanned / visual-page retrieval only.</li><li>Answers are grounded after reading actual document content.</li></ul></div>
+</div>
+</section>
+
+<div class="footer">Enterprise RAG · business-first explanation flow · black-and-white presentation layout.</div>
+</div></body></html>

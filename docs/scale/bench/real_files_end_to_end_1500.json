@@ -1,0 +1,69 @@
+{
+ "files": 1500,
+ "formats": {
+  "orig": 859,
+  "pdf": 235,
+  "docx": 161,
+  "html": 96,
+  "pptx": 89,
+  "rtf": 60
+ },
+ "questions": 299,
+ "ingest": {
+  "scan_s": 1.1,
+  "ingest_s": 976.5,
+  "docs_per_s": 1.54,
+  "states": {
+   "indexed": 1500
+  },
+  "failed_or_pending": [],
+  "skipped": []
+ },
+ "retrieval": {
+  "hit@1": 0.9732,
+  "hit@3": 0.9967,
+  "hit@5": 1.0,
+  "hit@10": 1.0,
+  "hit@20": 1.0,
+  "hit@40": 1.0,
+  "mrr": 0.9841,
+  "missed": 0,
+  "p50_ms": 26.7,
+  "p95_ms": 39.1
+ },
+ "fidelity": {
+  "checked": 299,
+  "hash_ok": 299,
+  "path_ok": 299,
+  "chunk_checked": 897,
+  "chunk_exact": 840,
+  "chunk_near": 57,
+  "chunk_none": 0,
+  "page_ok": 897,
+  "page_checked": 897,
+  "control_checked": 300,
+  "control_matched": 0
+ },
+ "problems": [],
+ "access": {
+  "searches": 600,
+  "leaks": 0,
+  "examples": [],
+  "nobody_got_nothing": 120
+ },
+ "change": {
+  "queued_on_rescan": 6,
+  "expected_queued": 6,
+  "edits_found": "5/5",
+  "added_found": true,
+  "deleted_gone": "5/5",
+  "stats": {
+   "status": "done",
+   "upserts": 1496,
+   "queued": 6,
+   "acl_changes": 0,
+   "deletes": 5,
+   "batches": 3
+  }
+ }
+}

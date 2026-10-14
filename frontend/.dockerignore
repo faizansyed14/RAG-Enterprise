@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+dist
+coverage
+.git
+*.log
+.env*
+!.env*.example
+.DS_Store
+npm-debug.log*
+.turbo
+README.md
+**/*.md

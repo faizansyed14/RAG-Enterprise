@@ -1,0 +1,21 @@
+# Layout analysis + OCR + table structure (app/scale/docparse; see docs/scale/DOCPARSE.md). Optional: SCALE_DOCPARSE_MODE=off needs none of it.
+# Install in TWO steps, because rapid-table pins numpy<2 while rapid-layout needs numpy>=2 (we only use rapid-table's model file):
+#
+#   pip install -r requirements-docparse.txt
+#   pip install --no-deps rapidocr-onnxruntime==1.4.4 rapid-layout==1.2.1 rapid-table==1.0.3
+#
+# The models (PP-OCRv4, PP-Layout CDLA, SLANet-plus) are inside those wheels: nothing is downloaded at run time.
+# Tested with Python 3.13 (the two rapid packages declare <3.13, so there they needed --ignore-requires-python); the repo's Docker
+# image is Python 3.12, where the commands above should work as written -- that exact combination was not run.
+numpy>=2.0
+onnxruntime>=1.17
+opencv-python-headless>=4.8        # provides cv2; the rapid packages ask for opencv-python, which conflicts with a headless server
+pyclipper>=1.3
+shapely>=2.0.5                     # not 2.0.4
+Pillow>=9.0
+pyyaml
+omegaconf
+colorlog
+requests
+tqdm
+six

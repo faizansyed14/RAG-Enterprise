@@ -1,0 +1,197 @@
+Enterprise RAG -- commands
+==========================
+
+Run everything from the repository root. Project name is "rag", so volumes are rag_pgdata, rag_qdrant-data,
+rag_minio-data, rag_rag-data and rag_hf-cache.
+
+Three stacks, one start/stop pair each:
+  scripts/local/{start,stop}.sh   docker-compose.local.yml   plain HTTP on your own machine, no TLS
+  scripts/dev/{start,stop}.sh     docker-compose.dev.yml     nginx + TLS, self-hosted Postgres/Qdrant/MinIO on one server
+  scripts/prod/{start,stop}.sh    docker-compose.prod.yml    nginx + TLS, managed Postgres (RDS) and S3
+
+local and dev read .env.dev; prod reads .env.prod. Every docker compose command needs --env-file, even ps / logs /
+down: credentials in the compose files are ${VAR:?} placeholders that the compose CLI resolves itself.
+
+Services (local):  frontend :3000 | backend :8000 | worker (indexing) | postgres :5432 | qdrant :6333 | minio :9000/:9001
+Optional services: embed + rerank model servers (flag --models)
+Services (dev/prod): only nginx (:80, :443) is public.
+
+Needs: Docker with the compose plugin (v2.20 or newer). 16 GB RAM is enough for the default (local models) setup;
+see "MEMORY" below.
+
+
+FIRST TIME, LOCAL (about 10 minutes, mostly image builds)
+---------------------------------------------------------
+1.  cp .env.dev.example .env.dev
+2.  Edit .env.dev. The placeholders already work on your own machine; you must set:
+      OPENROUTER_API_KEY      chat and tree building use it (any OpenAI-compatible gateway works)
+    and should set ADMIN_PASSWORD (your first login; the admin account is created on first start).
+    On a shared machine also change POSTGRES_PASSWORD / POSTGRES_DSN, MINIO_ROOT_PASSWORD / S3_SECRET_KEY and
+    QDRANT_API_KEY (the same value is used by the Qdrant container and the backend).
+3.  bash scripts/get-models.sh                   # local embedding model (8-bit, ~35 MB) + reranker (~90 MB), into ./models
+    (the same command also fetches the small cross-encoder reranker, ~90 MB; --no-reranker skips it)
+4.  bash scripts/local/start.sh                  # builds, starts, waits for Postgres, runs migrations
+5.  Open http://localhost:3000 and sign in.      Add a source: Sources -> Add source.
+
+
+START
+-----
+bash scripts/local/start.sh                      # local
+bash scripts/dev/start.sh                        # dev   (needs the TLS files named in .env.dev)
+bash scripts/prod/start.sh                       # prod  (needs .env.prod)
+
+What is on by default (nothing to switch on): local embeddings (BGE-small) and local reranker (MiniLM), local OCR + layout +
+tables for scanned PDFs and images, LibreOffice for .doc/.xls/.ppt, the chunk editor, permissions. Every file type: README in
+docs/scale/README.md, section "Which files can it read".
+
+Optional flags, same for local / dev / prod (and pass the same flags to stop.sh):
+  --models     also start the embedding + reranker servers (BGE-M3 + bge-reranker-v2-m3, better quality, more RAM)
+               also set in the env file:  SCALE_EMBED_BACKEND=openai, SCALE_EMBED_BASE_URL=http://embed:80/v1,
+               SCALE_EMBED_MODEL=BAAI/bge-m3, SCALE_EMBED_DIM=1024, SCALE_RERANK_URL=http://rerank:80/rerank
+               (the commented lines in .env.dev.example)
+  --slim       build WITHOUT the OCR models and LibreOffice (about 850 MB smaller image). Scanned PDFs then go to the vision
+               model and .doc/.xls/.ppt are skipped with a reason. Set SCALE_DOCPARSE_MODE=off with it.
+
+Scans: local OCR is the default (free, nothing leaves the machine). To send scanned pages to the vision model instead
+(drawings, handwriting, diagram search; one model call per page), set SCALE_DOCPARSE_MODE=off in the env file and restart
+backend and worker.
+
+Examples:
+  bash scripts/local/start.sh
+  bash scripts/local/start.sh --models
+  bash scripts/local/start.sh --slim
+
+Manual equivalents (local):
+  docker compose --env-file .env.dev -f docker-compose.local.yml up -d --build
+  docker compose --env-file .env.dev -f docker-compose.local.yml --profile models up -d
+  docker compose --env-file .env.dev -f docker-compose.local.yml up -d postgres qdrant minio      # databases only
+  docker compose --env-file .env.dev -f docker-compose.local.yml exec -T backend alembic upgrade head
+
+
+YOUR FILES
+----------
+Folder on this machine:   put the files under ./sources (mounted in the containers at /mnt/sources), then in the UI:
+                          Sources -> Add source -> Folder or mount, root "/mnt/sources" (or a sub-folder).
+Network shares, SharePoint / OneDrive, S3 and about 20 more kinds: Sources -> Add source and pick the type.
+                          Secrets are never typed in: put them in .env.dev and name the variable, for example
+                          "password_env": "SMB_PASSWORD". Connector settings: docs/scale/CONNECTORS.md.
+Who may read what:        Sources -> Access groups, or the CLI below. A login with no groups sees only documents
+                          that are open to everyone.
+
+Command line (same actions, handy for scripts):
+  bash scripts/cli.sh local status
+  bash scripts/cli.sh local connect kinds
+  bash scripts/cli.sh local connect add --kind local --name "Shared drive" --config /mnt/sources/conn.json
+  bash scripts/cli.sh local connect test --kind sharepoint --config /mnt/sources/sp.json   # read-only check, stores nothing
+  bash scripts/cli.sh local connect list
+  bash scripts/cli.sh local scan --connection "Shared drive"
+  bash scripts/cli.sh local principals add --user alice --principal group:finance
+  bash scripts/cli.sh local index-existing         # index documents that were uploaded through the UI earlier
+  bash scripts/cli.sh local migration status       # a changed embedding model: how far the rebuild is
+  bash scripts/cli.sh local migration retire       # delete the previous index once it reaches 100%
+  bash scripts/cli.sh local jobs requeue-dead      # retry jobs that gave up
+  bash scripts/backup.sh prod ./backups            # database backup (the only store that cannot be rebuilt); see docs/OPERATIONS.md
+  bash scripts/cli.sh local reconcile --dry-run    # compare the documents with the search index, change nothing
+  bash scripts/cli.sh local reconcile              # re-embed whatever is missing, partial or built with an old model
+  bash scripts/cli.sh local reconcile --force --orphans   # compare everything now and delete chunks of vanished documents
+(use dev or prod instead of local for the other stacks; --config reads a path INSIDE the container)
+
+
+STATUS / LOGS
+-------------
+docker compose --env-file .env.dev -f docker-compose.local.yml ps
+docker compose --env-file .env.dev -f docker-compose.local.yml logs -f backend
+docker compose --env-file .env.dev -f docker-compose.local.yml logs -f worker      # indexing progress and errors
+docker compose --env-file .env.dev -f docker-compose.local.yml logs -f frontend
+docker compose --env-file .env.dev -f docker-compose.local.yml logs -f --tail=200
+curl http://localhost:8000/api/health
+
+
+STOP
+----
+bash scripts/local/stop.sh                       # keeps the data
+bash scripts/local/stop.sh --wipe                # also deletes ALL data (documents, vectors, files, model cache)
+bash scripts/dev/stop.sh      bash scripts/prod/stop.sh      (same flags; add --models if you started them)
+
+Restart one service:
+docker compose --env-file .env.dev -f docker-compose.local.yml restart backend worker
+
+
+MORE THROUGHPUT
+---------------
+Indexing is done by the worker. More workers = faster:
+docker compose --env-file .env.dev -f docker-compose.local.yml up -d --scale worker=3
+Per-worker parallelism: SCALE_WORKER_CONCURRENCY in the env file.
+
+
+SHELL ACCESS
+------------
+docker compose --env-file .env.dev -f docker-compose.local.yml exec backend bash
+docker compose --env-file .env.dev -f docker-compose.local.yml exec postgres psql -U rag -d rag_engine
+
+
+TESTS
+-----
+docker compose --env-file .env.dev -f docker-compose.local.yml exec -T backend pytest -q
+docker compose --env-file .env.dev -f docker-compose.local.yml exec -T frontend npx tsc --noEmit
+(one existing test, test_render_blocks_as_pdf_arabic_text_survives_round_trip, fails on the original code too; it is a
+font-rendering test and does not affect the application)
+Real-model check of every file type (needs ./models from get-models.sh; builds legacy Office files with LibreOffice):
+docker compose --env-file .env.dev -f docker-compose.local.yml exec -T -e SCALE_TEST_MODELS_DIR=/models backend pytest tests/scale/test_fidelity_real_models.py -q -s
+(the image has no test tooling: for this one, use the no-Docker setup below, or the dev override with requirements-dev)
+Retrieval check on your own library (SQL only, no model calls): exits 1 if recall@5 drops below 90%
+docker compose --env-file .env.dev -f docker-compose.local.yml exec -T backend python -m scripts.eval_retrieval
+
+
+CLEAR DATA (DESTRUCTIVE)
+------------------------
+bash scripts/local/stop.sh --wipe
+docker compose --env-file .env.dev -f docker-compose.local.yml down -v --rmi local      # also removes the images
+One volume only (stop the stack first):
+docker volume rm rag_pgdata        # Postgres: users, documents, index jobs, permissions
+docker volume rm rag_qdrant-data   # Qdrant: search index (the worker rebuilds it by itself from Postgres; or: bash scripts/cli.sh local reconcile --force)
+docker volume rm rag_minio-data    # MinIO: original files and previews
+docker volume rm rag_rag-data      # tree storage
+docker volume rm rag_hf-cache      # model-server downloads (only with --models)
+
+
+CHANGING THE EMBEDDING MODEL
+----------------------------
+Edit SCALE_EMBED_* in the env file, restart backend and worker. A different model writes to a NEW search collection;
+the old one keeps answering while the worker's reconcile job (it compares every document with the index) re-embeds
+every document into the new one from the pages already stored in Postgres. No re-scan is needed. Nothing is deleted.
+Watch it:  bash scripts/cli.sh local status   ("index health" and the job counts).
+
+IF THE SEARCH INDEX WAS LOST OR RESTORED FROM AN OLD BACKUP
+-----------------------------------------------------------
+Do nothing: the worker notices within a few minutes, queues the missing documents and re-embeds them (at most
+SCALE_RECONCILE_REQUEUE_CAP at a time). To start at once:  bash scripts/cli.sh local reconcile --force --orphans
+
+
+MEMORY (16 GB laptop)
+---------------------
+Default setup (local ONNX embedding and reranker, OCR models, no model servers): about 5-7 GB for the whole stack. Fine.
+With --models (BGE-M3 + reranker servers on CPU): about 6 GB more, and slower. Use them on a server, or on a 32 GB machine.
+Docker Desktop: give it 8 GB or more (Settings -> Resources).
+If a large scan makes the machine sluggish, lower SCALE_WORKER_CONCURRENCY and SCALE_EMBED_BATCH.
+
+
+PRODUCTION CHECKLIST
+--------------------
+cp .env.prod.example .env.prod   and fill in every value; the backend refuses to start in prod with placeholder secrets
+bash scripts/prod/start.sh
+Use real TLS files, managed Postgres and S3, a long AUTH_SECRET, and set CORS_ORIGINS to your public address.
+docs/SECURITY.md lists what the application enforces and what stays with your infrastructure.
+
+
+NO DOCKER (backend development only)
+------------------------------------
+cd backend
+python -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt -r requirements-scale.txt -r requirements-connectors.txt
+pip install -r requirements-docparse.txt        # local OCR + layout + tables (see the file: two-step install)
+# legacy Office files need LibreOffice on the machine:  apt install libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
+python -m app.scale.worker                      # in a second terminal: the indexing worker
+cd ../frontend && npm ci && npm run dev

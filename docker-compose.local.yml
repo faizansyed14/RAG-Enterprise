@@ -1,0 +1,146 @@
+# Pure local dev -- plain HTTP, no nginx, no TLS certificate needed. Traffic never
+# leaves the loopback interface on your own machine, so there's no real benefit to
+# encryption here, only the cost of a self-signed cert's per-origin browser trust
+# click (confirmed live: this is exactly what broke document preview -- MinIO's
+# presigned URLs are a *separate* origin from the main app, so trusting the app's
+# cert doesn't carry over, and the browser's fetch() for the preview just fails).
+#
+# Deploying this same stack (self-hosted Postgres/Qdrant/MinIO, not managed RDS/S3)
+# to a public EC2 instance instead of only localhost needs real TLS -- use
+# docker-compose.dev.yml for that, a separate complete stack built on top of
+# this one with nginx + a real certificate in front.
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      # The tree engine's own storage (app/rag_service.py) -- the actual
+      # source of truth for every indexed document's tree. Losing this
+      # volume orphans every rag_doc_id in Postgres.
+      - rag-data:/app/.rag-data
+      - ./models:/models:ro
+    env_file: .env.dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file: .env.dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: rag_engine
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.dev (must match POSTGRES_DSN's password)}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env.dev}
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  minio:
+    # MinIO pulled every minio/minio tag from Docker Hub (Sept 2026) and archived
+    # the open-source repo -- the free community edition is being sunset in favor
+    # of paid AIStor. quay.io/minio/minio (MinIO's own alternate registry per
+    # their own announcement) returns 401 Unauthorized as of this writing --
+    # verified directly, not assumed -- so it is NOT a working fallback right
+    # now despite being widely reported as one. elestio/minio is a third-party
+    # rebuild (not MinIO Inc.), confirmed pullable -- accepted here only because
+    # the official registry path is currently broken; re-evaluate this image
+    # choice once MinIO's distribution situation stabilizes.
+    image: elestio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-rag}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.dev (must match S3_SECRET_KEY)}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  # ---- enterprise ingest worker: same image as the API, different command ----
+  # Scans sources, parses, embeds and indexes documents. Jobs are claimed with SKIP LOCKED, so any number of
+  # workers can run side by side:  docker compose ... up -d --scale worker=4
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+      args:
+        INSTALL_DOCPARSE: ${INSTALL_DOCPARSE:-1}
+        INSTALL_LEGACY_OFFICE: ${INSTALL_LEGACY_OFFICE:-1}
+        INSTALL_CONNECTORS: ${INSTALL_CONNECTORS:-1}
+    command: ["python", "-m", "app.scale.worker"]
+    healthcheck:
+      # The worker has no port. It touches a file every 20 s while its loop runs; no touch for 2 min = stuck or dead.
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/tmp/scale-worker.alive') < 120 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+    stop_grace_period: 60s
+    env_file: .env.dev
+    volumes:
+      - ./backend:/app
+      - rag-data:/app/.rag-data
+      - ./models:/models:ro
+      - ${SCALE_SOURCE_DIR:-./sources}:/mnt/sources:ro
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+    restart: unless-stopped
+
+  # ---- optional model servers (profile "models"): scripts/<stack>/start.sh --models ----
+  # Hugging Face text-embeddings-inference. CPU image by default; on a GPU host set TEI_IMAGE to a GPU tag and add
+  # the nvidia device reservation. Models download on first start into the hf-cache volume.
+  embed:
+    profiles: ["models"]
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.8}
+    command: ["--model-id", "${EMBED_MODEL_ID:-BAAI/bge-m3}", "--max-client-batch-size", "128"]
+    volumes:
+      - hf-cache:/data
+    restart: unless-stopped
+
+  rerank:
+    profiles: ["models"]
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.8}
+    command: ["--model-id", "${RERANK_MODEL_ID:-BAAI/bge-reranker-v2-m3}"]
+    volumes:
+      - hf-cache:/data
+    restart: unless-stopped
+
+
+volumes:
+  pgdata:
+  qdrant-data:
+  minio-data:
+  rag-data:
+  hf-cache:

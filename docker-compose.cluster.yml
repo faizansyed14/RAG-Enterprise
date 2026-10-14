@@ -1,0 +1,65 @@
+# A three-node Qdrant cluster behind a small load balancer, layered over the production stack:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.cluster.yml --env-file .env.prod up -d
+#
+# What it gives: the index is split into shards spread over three nodes, each shard kept on two of them (SCALE_QDRANT_REPLICATION_FACTOR=2
+# in .env.prod), so one node can be lost without losing data or search. What it does NOT give: a highly available PostgreSQL
+# (use a managed one or Patroni / CloudNativePG, and PgBouncer in front), or protection against losing the machine all three nodes run on:
+# on real hardware put each node on its own host.
+#
+# Set in .env.prod before the FIRST collection is created (an existing collection keeps its layout):
+#   SCALE_QDRANT_SHARDS=12            twelve shards can later spread over 1, 2, 3, 4, 6 or 12 nodes without rebuilding
+#   SCALE_QDRANT_REPLICATION_FACTOR=2
+#   SCALE_QDRANT_WRITE_CONSISTENCY=1  (2 = a write waits for both copies: safer, slower)
+#   QDRANT_URL=http://qdrant-lb:6333
+#
+# NOT RUN in the environment this was written in (no container runtime there). Bring it up on a test host and kill one node
+# (docker compose stop qdrant2) while a search load runs, before trusting it.
+services:
+  qdrant:
+    command: ["./entrypoint.sh", "--uri", "http://qdrant:6335"]
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+
+  qdrant2:
+    image: qdrant/qdrant:v1.19.1
+    command: ["./entrypoint.sh", "--bootstrap", "http://qdrant:6335"]
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+    volumes:
+      - qdrant2-data:/qdrant/storage
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+  qdrant3:
+    image: qdrant/qdrant:v1.19.1
+    command: ["./entrypoint.sh", "--bootstrap", "http://qdrant:6335"]
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+    volumes:
+      - qdrant3-data:/qdrant/storage
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+  qdrant-lb:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./infra/qdrant-lb.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - qdrant
+      - qdrant2
+      - qdrant3
+    expose:
+      - "6333"
+    restart: unless-stopped
+
+volumes:
+  qdrant2-data:
+  qdrant3-data:

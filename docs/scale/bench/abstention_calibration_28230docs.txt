@@ -1,0 +1,8 @@
+1530 answerable, 112 unanswerable questions
+separation (1.0 = perfect, 0.5 = none): cosine 0.937, BM25 0.982, coverage 0.918
+keep >= 99% of answerable: SCALE_MIN_CONFIDENCE=0.6973 SCALE_MIN_LEXICAL=30.2832 SCALE_MIN_COVERAGE=0.2117
+      in-sample: keeps 99.2%, turns away 79% of unanswerable;   out-of-sample (10 random splits): keeps 98.8%, turns away 80%
+keep >= 97% of answerable: SCALE_MIN_CONFIDENCE=0.7274 SCALE_MIN_LEXICAL=30.2832 SCALE_MIN_COVERAGE=0.4867
+      in-sample: keeps 97.6%, turns away 88% of unanswerable;   out-of-sample (10 random splits): keeps 97.1%, turns away 85%
+keep >= 95% of answerable: SCALE_MIN_CONFIDENCE=0.6973 SCALE_MIN_LEXICAL=41.7795 SCALE_MIN_COVERAGE=0.2619
+      in-sample: keeps 95.6%, turns away 93% of unanswerable;   out-of-sample (10 random splits): keeps 94.8%, turns away 92%

@@ -1,0 +1,26 @@
+{
+ "clean / spaces restored": {
+  "wer": 0.0739,
+  "cer": 0.0558,
+  "reading_order": 0.9074,
+  "furniture_leak": 0.0,
+  "table_cells": 0.9419,
+  "seconds_per_page": 4.64
+ },
+ "scan / spaces restored": {
+  "wer": 0.0621,
+  "cer": 0.0434,
+  "reading_order": 0.9375,
+  "furniture_leak": 0.0,
+  "table_cells": 0.9419,
+  "seconds_per_page": 3.49
+ },
+ "poor / spaces restored": {
+  "wer": 0.1225,
+  "cer": 0.1056,
+  "reading_order": 0.9556,
+  "furniture_leak": 0.0463,
+  "table_cells": 0.8417,
+  "seconds_per_page": 3.6
+ }
+}

@@ -1,0 +1,4 @@
+thresholds in force: 0.7274 30.2832 0.4867
+answerable turned away: 38/1530 = 2.5% {'nl': '17/465', 'kw': '21/465', 'id': '0/200', 'idnl': '0/200', 'name': '0/200'}
+far (topic not in the corpus): turned away 68/73 = 93.2%
+near (invented thing in a real topic): turned away 30/39 = 76.9%

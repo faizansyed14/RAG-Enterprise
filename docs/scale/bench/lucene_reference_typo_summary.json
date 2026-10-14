@@ -1,0 +1,32 @@
+{
+ "Lucene english, original questions": {
+  "hit@1": 0.7486,
+  "hit@3": 0.8977,
+  "hit@5": 0.9271,
+  "hit@10": 0.9554,
+  "hit@20": 0.9761,
+  "hit@40": 0.9869,
+  "mrr": 0.828,
+  "missed": 12
+ },
+ "Lucene english, misspelled": {
+  "hit@1": 0.6649,
+  "hit@3": 0.827,
+  "hit@5": 0.876,
+  "hit@10": 0.9195,
+  "hit@20": 0.9576,
+  "hit@40": 0.9674,
+  "mrr": 0.7587,
+  "missed": 30
+ },
+ "Lucene english + fuzzy, misspelled": {
+  "hit@1": 0.6866,
+  "hit@3": 0.8542,
+  "hit@5": 0.901,
+  "hit@10": 0.9358,
+  "hit@20": 0.9608,
+  "hit@40": 0.975,
+  "mrr": 0.7808,
+  "missed": 23
+ }
+}

@@ -1,0 +1,13 @@
+# Extra dependencies for the scale layer (everything else is already in requirements.txt).
+# qdrant-client >= 1.11 (already required) provides the hybrid query API used here.
+snowballstemmer>=2.2     # English stemming for the keyword side (SCALE_STEM_LANGS=en,ar). Pure Python, no data files
+smbprotocol>=1.13        # only for the SMB / file-share connector
+onnxruntime>=1.17        # the local embedding model and the local reranker (the defaults; no model server needed)
+tokenizers>=0.15         # the models' own tokenizer
+# Tests only (they build real .pptx / .odt files to prove the built-in readers; skipped if absent):
+#   pip install python-pptx odfpy
+httpx>=0.27              # the connectors (all but local, smb, ftp, sftp, imap) talk HTTP through it; also needed at run time, not only in tests
+numpy>=1.26              # already installed with qdrant-client
+# Optional, per feature:
+#   pip install -r requirements-connectors.txt     connectors that need a package (smb, s3, sftp, sql drivers)
+#   pip install -r requirements-docparse.txt       layout analysis + OCR (two-step install, read the file)

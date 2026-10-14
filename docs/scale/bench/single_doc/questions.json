@@ -1,0 +1,261 @@
+[
+ {
+  "id": 0,
+  "q": "What is the default reclaim policy of a StorageClass if none is specified?",
+  "must": [
+   "it will default to Delete"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 1,
+  "q": "Which Kubernetes version is required for volume expansion of FlexVolume?",
+  "must": [
+   "FlexVolume",
+   "1.13"
+  ],
+  "style": "table",
+  "answer_in_source": true
+ },
+ {
+  "id": 2,
+  "q": "What happens when more than one StorageClass is marked as default and a PVC has no storageClassName?",
+  "must": [
+   "most recently created default StorageClass"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 3,
+  "q": "Can volume expansion be used to shrink a volume?",
+  "must": [
+   "grow a Volume, not to shrink it"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 4,
+  "q": "What is the maximum number of parameters defined for a StorageClass?",
+  "must": [
+   "at most 512 parameters"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 5,
+  "q": "What is the size limit of the parameters object including keys and values?",
+  "must": [
+   "256 KiB"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 6,
+  "q": "Which volume binding mode delays provisioning until a pod using the PVC is created?",
+  "must": [
+   "WaitForFirstConsumer mode which"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 7,
+  "q": "What is the default volume binding mode when unset?",
+  "must": [
+   "When unset, Immediate mode is used by default"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 8,
+  "q": "What happens to the PVC if nodeName is used in the Pod spec with WaitForFirstConsumer?",
+  "must": [
+   "PVC will remain in pending state"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 9,
+  "q": "Do Local volumes support dynamic provisioning?",
+  "must": [
+   "Local volumes do not support dynamic provisioning"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 10,
+  "q": "Does Kubernetes include an internal NFS provisioner?",
+  "must": [
+   "Kubernetes doesn't include an internal NFS provisioner"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 11,
+  "q": "What values can the vSphere diskformat parameter take?",
+  "must": [
+   "thin, zeroedthick and eagerzeroedthick"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 12,
+  "q": "What is the default Ceph RBD pool?",
+  "must": [
+   "Ceph RBD pool. Default is \"rbd\""
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 13,
+  "q": "Which fsType is the default for Ceph RBD?",
+  "must": [
+   "fsType that is supported by kubernetes. Default: \"ext4\""
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 14,
+  "q": "What range of replication factor does the Portworx repl parameter accept?",
+  "must": [
+   "repl",
+   "1..3"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 15,
+  "q": "What does the Portworx snap_interval parameter control?",
+  "must": [
+   "snap_interval",
+   "trigger snapshots"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 16,
+  "q": "What is the default Portworx priority_io value?",
+  "must": [
+   "priority_io",
+   "(default: low)"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 17,
+  "q": "What is the default secretName for an Azure File storage class?",
+  "must": [
+   "azure-storage-account-<accountName>-secret"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 18,
+  "q": "Why should secretNamespace be set explicitly in a multi-tenancy context?",
+  "must": [
+   "credentials may be read by other users"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 19,
+  "q": "Which clusterrole needs the create permission on secrets for Azure File with RBAC?",
+  "must": [
+   "system:controller:persistent-volume-binder"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 20,
+  "q": "Which AWS EFS parameter selects access point based provisioning?",
+  "must": [
+   "provisioningMode",
+   "efs-ap"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 21,
+  "q": "In which Kubernetes release was the in-tree AWSElasticBlockStore driver removed?",
+  "must": [
+   "AWSElasticBlockStore in-tree storage driver was deprecated",
+   "removed entirely in the v1.27 release"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 22,
+  "q": "What is the name of the vSphere CSI provisioner?",
+  "must": [
+   "csi.vsphere.vmware.com"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 23,
+  "q": "When should allowedTopologies be specified?",
+  "must": [
+   "if still required, allowedTopologies can be specified"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 24,
+  "q": "Which Kubernetes version is required for CSI volume expansion?",
+  "must": [
+   "CSI",
+   "1.24"
+  ],
+  "style": "table",
+  "answer_in_source": true
+ },
+ {
+  "id": 25,
+  "q": "What two values can reclaimPolicy take?",
+  "must": [
+   "either Delete or Retain"
+  ],
+  "style": "kw",
+  "answer_in_source": true
+ },
+ {
+  "id": 26,
+  "q": "What does a StorageClass provisioner field determine?",
+  "must": [
+   "determines what volume plugin is used for provisioning PVs"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ },
+ {
+  "id": 27,
+  "q": "What happens to existing PVCs without storageClassName when a default StorageClass appears?",
+  "must": [
+   "control plane identifies any existing PVCs without storageClassName"
+  ],
+  "style": "nl",
+  "answer_in_source": true
+ }
+]
